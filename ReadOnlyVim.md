@@ -19,10 +19,19 @@ Scrolling is **velocity based**, not step based: holding `j`/`k` ramps to a
 fixed cruise speed almost instantly and scrolls smoothly and steadily for as
 long as you hold - it never accumulates or accelerates. A quick tap is just a
 brief scroll, so it nudges the page a little. Releasing ramps back to a stop.
-Two tunables below:
 
-* `SCROLL_SPEED` - cruise speed in pixels per second while held (lower = slower).
-* `RAMP_MS` - milliseconds to reach / leave cruise speed (smaller = snappier start and stop, larger = softer).
+## Configuration
+
+Set these from your **CONFIG** page (no need to edit this library). Values are
+read each time a scroll starts, so changes apply on the next press:
+
+```lua
+-- Cruise speed in pixels per second while a key is held (default 1000).
+config.set("readOnlyVim.scrollSpeed", 1600)
+-- Milliseconds to accelerate to / decelerate from cruise speed (default 60;
+-- smaller = snappier start and stop, larger = softer).
+config.set("readOnlyVim.scrollRampMs", 60)
+```
 
 It also yields to the [Trigger](Trigger.md) overlay, so `j`/`k` still work as
 hint letters while hints are showing.
@@ -30,8 +39,8 @@ hint letters while hints are showing.
 ```space-lua
 -- priority: 10
 
-local SCROLL_SPEED = 500 -- cruise speed in px/s while a key is held
-local RAMP_MS = 60       -- ms to accelerate to / decelerate from cruise speed
+local DEFAULT_SPEED = 1000 -- px/s cruise while held; override via config "readOnlyVim.scrollSpeed"
+local DEFAULT_RAMP_MS = 60  -- ms to ramp to/from cruise; override via config "readOnlyVim.scrollRampMs"
 
 local function vimReadOnlyActive()
   local doc = js.window.document
@@ -71,12 +80,22 @@ local function animate()
     dt = 0.05 -- clamp big gaps (background tab) so we never jump
   end
 
+  -- Speed / ramp are captured when the gesture starts (see startLoop).
+  local speed = tonumber(js.window.__sbReadOnlyVimSpeed) or DEFAULT_SPEED
+  if speed <= 0 then
+    speed = DEFAULT_SPEED
+  end
+  local ramp = tonumber(js.window.__sbReadOnlyVimRamp) or DEFAULT_RAMP_MS
+  if ramp < 1 then
+    ramp = 1
+  end
+
   local dir = js.window.__sbReadOnlyVimHeldDir or 0
-  local targetVel = dir * SCROLL_SPEED
+  local targetVel = dir * speed
   local vel = js.window.__sbReadOnlyVimVelocity or 0
 
-  -- Move velocity toward target by at most (cruise / ramp) per second.
-  local maxDelta = (SCROLL_SPEED / (RAMP_MS / 1000)) * dt
+  -- Move velocity toward target by at most (speed / ramp) per second.
+  local maxDelta = (speed / (ramp / 1000)) * dt
   if vel < targetVel then
     vel = vel + maxDelta
     if vel > targetVel then
@@ -122,6 +141,10 @@ local function startLoop()
   if not js.window.__sbReadOnlyVimAnimating then
     js.window.__sbReadOnlyVimAnimating = true
     js.window.__sbReadOnlyVimLastTime = js.window.performance.now()
+    -- Read config at gesture start (runtime), so CONFIG's config.set has already
+    -- run and live edits take effect on the next press. config.get is synchronous.
+    js.window.__sbReadOnlyVimSpeed = config.get("readOnlyVim.scrollSpeed", DEFAULT_SPEED)
+    js.window.__sbReadOnlyVimRamp = config.get("readOnlyVim.scrollRampMs", DEFAULT_RAMP_MS)
     local fn = js.window.__sbReadOnlyVimScrollAnimate
     if fn then
       fn()

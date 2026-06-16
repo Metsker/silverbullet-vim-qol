@@ -12,9 +12,10 @@ Two libraries:
   letter labels on every link, button and task checkbox on screen - plus the
   top-bar actions (page name / rename, home, ...) - then type a label to activate
   it. Great for triggering buttons and links rendered inside query output.
-- **ReadOnlyVim** (`ReadOnlyVim.md`) - `j`/`k` scrolling on
+- **ReadOnlyVim** (`ReadOnlyVim.md`) - smooth, velocity-based `j`/`k` scrolling on
   read-only pages while Vim mode is on (where Vim's own motions can't reach the
-  unfocusable editor). Inert in edit mode and when Vim is off.
+  unfocusable editor). Holding cruises at a steady speed; a tap nudges a little.
+  Inert in edit mode and when Vim is off. Speed is configurable from CONFIG (see below).
 
 ## Install
 
@@ -63,6 +64,21 @@ command.update {
 
 The combo works on read-only pages too, thanks to SilverBullet's shortcut
 forwarding.
+
+## ReadOnlyVim scrolling
+
+On a read-only page with Vim mode on, hold `j`/`k` to scroll down/up. It cruises
+at a steady speed while held and stops when you release; a quick tap nudges the
+page a little. Tune it from your `CONFIG` page (values are read each time a
+scroll starts, so edits apply on the next press):
+
+```lua
+-- Cruise speed in pixels per second while held (default 1000).
+config.set("readOnlyVim.scrollSpeed", 1600)
+-- Milliseconds to accelerate to / decelerate from cruise speed (default 60;
+-- smaller = snappier start and stop).
+config.set("readOnlyVim.scrollRampMs", 60)
+```
 
 ## How activation works
 
