@@ -1,9 +1,10 @@
-# SilverBullet Link Hints
+# SilverBullet Vim QoL
 
-Keyboard-navigation enhancements for [SilverBullet](https://silverbullet.md),
-written in pure [Space Lua](https://silverbullet.md/Space%20Lua) - no compiled
-plug, no client changes. They reach the DOM through the `js` interop bridge and
-install document-level `keydown` listeners, so they also work on read-only pages.
+Vim-flavored quality-of-life enhancements for
+[SilverBullet](https://silverbullet.md), written in pure
+[Space Lua](https://silverbullet.md/Space%20Lua) - no compiled plug, no client
+changes. They reach the DOM through the `js` interop bridge and install
+document-level `keydown` listeners, so they also work on read-only pages.
 
 Two libraries:
 
@@ -23,18 +24,18 @@ Two libraries:
 2. Paste the URI of the library you want:
 
    ```
-   ghr:Metsker/silverbullet-link-hints/LinkHints.md
-   ghr:Metsker/silverbullet-link-hints/VimReadonlyScroll.md
+   ghr:Metsker/silverbullet-vim-qol/LinkHints.md
+   ghr:Metsker/silverbullet-vim-qol/VimReadonlyScroll.md
    ```
 
-   (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-link-hints/blob/main/LinkHints.md`)
+   (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-vim-qol/blob/main/LinkHints.md`)
 
 3. They install as pages under `Library/`. Run **`Library: Update All`** later to
    pull new versions.
 
 **Via a repository (if you want it in the `Libraries: Manager` list):**
 
-1. Run **`Library: Add Repository`** with `ghr:Metsker/silverbullet-link-hints/Repository.md`.
+1. Run **`Library: Add Repository`** with `ghr:Metsker/silverbullet-vim-qol/Repository.md`.
 2. Open **`Libraries: Manager`** and install "Link Hints".
 
 **Manually:** create a page in your space and paste the contents of

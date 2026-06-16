@@ -1,21 +1,22 @@
 #meta/repository
 
-A SilverBullet library repository for [Link Hints](https://github.com/Metsker/silverbullet-link-hints).
+The [SilverBullet Vim QoL](https://github.com/Metsker/silverbullet-vim-qol)
+library repository.
 
 Add this repository to your space with **`Library: Add Repository`** and the URI
-`ghr:Metsker/silverbullet-link-hints/Repository.md`, then install "Link Hints"
-from **`Libraries: Manager`**.
+`ghr:Metsker/silverbullet-vim-qol/Repository.md`, then install the libraries you
+want from **`Libraries: Manager`**.
 
 ```#meta/library/remote
 name: Link Hints
 author: Lev Shchinoff
 description: Vimium-style keyboard navigation - hint labels on links, buttons and tasks
-website: https://github.com/Metsker/silverbullet-link-hints
-uri: ghr:Metsker/silverbullet-link-hints/LinkHints.md
+website: https://github.com/Metsker/silverbullet-vim-qol
+uri: ghr:Metsker/silverbullet-vim-qol/LinkHints.md
 ---
 name: Vim Readonly Scroll
 author: Lev Shchinoff
 description: j/k scrolling on read-only pages when Vim mode is enabled
-website: https://github.com/Metsker/silverbullet-link-hints
-uri: ghr:Metsker/silverbullet-link-hints/VimReadonlyScroll.md
+website: https://github.com/Metsker/silverbullet-vim-qol
+uri: ghr:Metsker/silverbullet-vim-qol/VimReadonlyScroll.md
 ```
