@@ -1,7 +1,7 @@
 ---
 name: Library/Trigger
 description: Vimium-style keyboard navigation - hint labels to trigger links, buttons, tasks and top-bar actions
-tags: meta
+tags: meta/library
 ---
 
 Vimium-style keyboard navigation. Run **Navigate: Trigger** (from the Command

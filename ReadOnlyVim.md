@@ -1,7 +1,7 @@
 ---
 name: Library/ReadOnlyVim
 description: Vim quality-of-life helpers for read-only pages (currently j/k scrolling)
-tags: meta
+tags: meta/library
 ---
 
 Vim quality-of-life helpers for **read-only** pages. On a read-only page the
