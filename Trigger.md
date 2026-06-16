@@ -7,8 +7,9 @@ tags: meta/library
 Vimium-style keyboard navigation. Run **Navigate: Trigger** (from the Command
 Palette) to overlay short letter labels on every link, button and task checkbox
 on screen - plus the **top-bar actions** (page name / rename, home, and the
-other action buttons). Type a label to activate it - no mouse needed. Great for
-triggering buttons and links rendered inside query output.
+other action buttons) and the **Table of Contents** widget (its entry links jump
+to sections, and its header folds/unfolds it). Type a label to activate it - no
+mouse needed. Great for triggering buttons and links rendered inside query output.
 
 While hints are showing:
 
@@ -57,6 +58,10 @@ local selector = table.concat({
   "input.sb-page-name-editor",
   ".sb-task-state[data-task-state]",
   "[role=button]",
+  -- Std Table of Contents widget: entry links (<a class=sb-toc-link>, onclick
+  -- only, no href) and the foldable header (<summary class=sb-toc-summary>).
+  ".sb-toc-link",
+  ".sb-toc-summary",
 }, ", ")
 
 -- The currently active hint session, or nil when no hints are shown.
