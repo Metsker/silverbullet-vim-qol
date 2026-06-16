@@ -15,14 +15,19 @@ Currently provided:
 * `j` - scroll down
 * `k` - scroll up
 
-Adjust `SCROLL_STEP` below to taste (pixels per key press; the key auto-repeats
-while held). It also yields to the [Trigger](Trigger.md) overlay, so `j`/`k`
-still work as hint letters while hints are showing.
+Scrolling is **smooth**: each key press nudges a scroll target, and a
+`requestAnimationFrame` loop eases the page toward it - so holding `j`/`k` builds
+momentum and releasing glides to a stop. Tune the feel with the two constants
+below: `SCROLL_STEP` (pixels added per key press) and `EASING` (fraction of the
+remaining distance covered each frame; higher = snappier, lower = floatier). It
+also yields to the [Trigger](Trigger.md) overlay, so `j`/`k` still work as hint
+letters while hints are showing.
 
 ```space-lua
 -- priority: 10
 
-local SCROLL_STEP = 64 -- pixels per key press (auto-repeats while the key is held)
+local SCROLL_STEP = 64 -- pixels added to the scroll target per key press (auto-repeats while held)
+local EASING = 0.2     -- fraction of the remaining distance covered each frame (0-1; higher = snappier)
 
 local function vimReadOnlyActive()
   local doc = js.window.document
@@ -36,6 +41,71 @@ local function vimReadOnlyActive()
   end
   -- Vim mode marks the editor with the cm-vimMode class.
   return doc.querySelector(".cm-vimMode") ~= nil
+end
+
+local function getScroller()
+  return js.window.document.querySelector(".cm-scroller")
+end
+
+-- One animation frame: ease the scroller toward the stored target, then either
+-- schedule the next frame or stop once we've effectively arrived. The next-frame
+-- callback indirects through `window` so a reload mid-animation never stacks loops.
+local function animate()
+  local scroller = getScroller()
+  local target = js.window.__sbReadOnlyVimScrollTarget
+  if not scroller or target == nil then
+    js.window.__sbReadOnlyVimScrollAnimating = false
+    return
+  end
+  local current = scroller.scrollTop
+  local distance = target - current
+  if distance < 1 and distance > -1 then
+    scroller.scrollTop = target
+    js.window.__sbReadOnlyVimScrollTarget = nil
+    js.window.__sbReadOnlyVimScrollAnimating = false
+    return
+  end
+  scroller.scrollTop = current + distance * EASING
+  js.window.requestAnimationFrame(function()
+    local fn = js.window.__sbReadOnlyVimScrollAnimate
+    if fn then
+      fn()
+    end
+  end)
+end
+
+-- Expose the current frame function so the running loop always reaches the latest
+-- definition after a script reload.
+js.window.__sbReadOnlyVimScrollAnimate = animate
+
+local function scrollBy(delta)
+  local scroller = getScroller()
+  if not scroller then
+    return
+  end
+  -- Anchor a fresh target to the live scroll position, then push it by delta;
+  -- repeated presses keep extending the same in-flight target (momentum).
+  local target = js.window.__sbReadOnlyVimScrollTarget
+  if target == nil then
+    target = scroller.scrollTop
+  end
+  target = target + delta
+  -- Clamp to the scrollable range.
+  local max = scroller.scrollHeight - scroller.clientHeight
+  if target < 0 then
+    target = 0
+  end
+  if target > max then
+    target = max
+  end
+  js.window.__sbReadOnlyVimScrollTarget = target
+  if not js.window.__sbReadOnlyVimScrollAnimating then
+    js.window.__sbReadOnlyVimScrollAnimating = true
+    local fn = js.window.__sbReadOnlyVimScrollAnimate
+    if fn then
+      fn()
+    end
+  end
 end
 
 local function handleScrollKey(e)
@@ -53,17 +123,13 @@ local function handleScrollKey(e)
   if not vimReadOnlyActive() then
     return
   end
-  local scroller = js.window.document.querySelector(".cm-scroller")
-  if not scroller then
-    return
-  end
   e.preventDefault()
   e.stopPropagation()
-  local delta = SCROLL_STEP
-  if key == "k" then
-    delta = -SCROLL_STEP
+  if key == "j" then
+    scrollBy(SCROLL_STEP)
+  else
+    scrollBy(-SCROLL_STEP)
   end
-  scroller.scrollBy({ top = delta, left = 0 })
 end
 
 -- Expose the current handler so the permanent bootstrap listener always reaches
