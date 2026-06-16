@@ -8,15 +8,15 @@ Add this repository to your space with **`Library: Add Repository`** and the URI
 want from **`Libraries: Manager`**.
 
 ```#meta/library/remote
-name: Jump
-author: Lev Shchinoff
-description: Vimium-style keyboard navigation - hint labels on links, buttons, tasks and top-bar actions
+name: Trigger
+author: Metsker
+description: Vimium-style keyboard navigation - hint labels to trigger links, buttons, tasks and top-bar actions
 website: https://github.com/Metsker/silverbullet-vim-qol
-uri: ghr:Metsker/silverbullet-vim-qol/Jump.md
+uri: ghr:Metsker/silverbullet-vim-qol/Trigger.md
 ---
-name: Vim Readonly Scroll
-author: Lev Shchinoff
-description: j/k scrolling on read-only pages when Vim mode is enabled
+name: ReadOnlyVim
+author: Metsker
+description: Vim quality-of-life helpers for read-only pages (currently j/k scrolling)
 website: https://github.com/Metsker/silverbullet-vim-qol
-uri: ghr:Metsker/silverbullet-vim-qol/VimReadonlyScroll.md
+uri: ghr:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
 ```

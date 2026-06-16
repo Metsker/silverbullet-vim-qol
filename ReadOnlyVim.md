@@ -1,20 +1,22 @@
 ---
-name: Library/Vim Readonly Scroll
-description: j/k scrolling on read-only pages when Vim mode is enabled
+name: Library/ReadOnlyVim
+description: Vim quality-of-life helpers for read-only pages (currently j/k scrolling)
 tags: meta
 ---
 
-Adds Vim-style `j` / `k` scrolling on **read-only** pages while **Vim mode** is
-enabled. On a read-only page the editor isn't focusable, so Vim's own motions
-never receive keys - this installs a small document-level listener that scrolls
-the page instead. It only acts when the page is read-only *and* Vim is on, so it
-never interferes with typing or with Vim's normal `j`/`k` motion in edit mode.
+Vim quality-of-life helpers for **read-only** pages. On a read-only page the
+editor isn't focusable, so Vim's own motions never receive keys - these install
+small document-level listeners that act while the page is read-only *and* Vim is
+enabled, and stay completely out of the way in edit mode. More read-only Vim
+helpers can be added to this page over time.
+
+Currently provided:
 
 * `j` - scroll down
 * `k` - scroll up
 
 Adjust `SCROLL_STEP` below to taste (pixels per key press; the key auto-repeats
-while held). It also yields to the [Jump](Jump.md) overlay, so `j`/`k`
+while held). It also yields to the [Trigger](Trigger.md) overlay, so `j`/`k`
 still work as hint letters while hints are showing.
 
 ```space-lua
@@ -37,8 +39,8 @@ local function vimReadOnlyActive()
 end
 
 local function handleScrollKey(e)
-  -- Leave keys alone while a Jump overlay is up, or with modifiers held.
-  if js.window.document.querySelector(".sb-jump-hints") then
+  -- Leave keys alone while a Trigger overlay is up, or with modifiers held.
+  if js.window.document.querySelector(".sb-trigger-hints") then
     return
   end
   if e.ctrlKey or e.metaKey or e.altKey then
@@ -66,14 +68,14 @@ end
 
 -- Expose the current handler so the permanent bootstrap listener always reaches
 -- the latest definition after a script reload.
-js.window.__sbVimScrollHandler = handleScrollKey
+js.window.__sbReadOnlyVimScrollHandler = handleScrollKey
 
 -- One document-level capture listener for the lifetime of the page; it indirects
 -- through the handler stored on `window`, so reloads don't stack listeners.
-if not js.window.__sbVimScrollBootstrapped then
-  js.window.__sbVimScrollBootstrapped = true
+if not js.window.__sbReadOnlyVimScrollBootstrapped then
+  js.window.__sbReadOnlyVimScrollBootstrapped = true
   js.window.document.addEventListener("keydown", function(e)
-    local handler = js.window.__sbVimScrollHandler
+    local handler = js.window.__sbReadOnlyVimScrollHandler
     if handler then
       handler(e)
     end

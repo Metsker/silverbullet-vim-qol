@@ -8,11 +8,11 @@ document-level `keydown` listeners, so they also work on read-only pages.
 
 Two libraries:
 
-- **Jump** (`Jump.md`) - Vimium-style navigation. Run a command to overlay short
+- **Trigger** (`Trigger.md`) - Vimium-style navigation. Run a command to overlay short
   letter labels on every link, button and task checkbox on screen - plus the
   top-bar actions (page name / rename, home, ...) - then type a label to activate
   it. Great for triggering buttons and links rendered inside query output.
-- **Vim Readonly Scroll** (`VimReadonlyScroll.md`) - `j`/`k` scrolling on
+- **ReadOnlyVim** (`ReadOnlyVim.md`) - `j`/`k` scrolling on
   read-only pages while Vim mode is on (where Vim's own motions can't reach the
   unfocusable editor). Inert in edit mode and when Vim is off.
 
@@ -24,11 +24,11 @@ Two libraries:
 2. Paste the URI of the library you want:
 
    ```
-   ghr:Metsker/silverbullet-vim-qol/Jump.md
-   ghr:Metsker/silverbullet-vim-qol/VimReadonlyScroll.md
+   ghr:Metsker/silverbullet-vim-qol/Trigger.md
+   ghr:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
    ```
 
-   (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-vim-qol/blob/main/Jump.md`)
+   (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-vim-qol/blob/main/Trigger.md`)
 
 3. They install as pages under `Library/`. Run **`Library: Update All`** later to
    pull new versions.
@@ -36,14 +36,14 @@ Two libraries:
 **Via a repository (if you want it in the `Libraries: Manager` list):**
 
 1. Run **`Library: Add Repository`** with `ghr:Metsker/silverbullet-vim-qol/Repository.md`.
-2. Open **`Libraries: Manager`** and install "Jump".
+2. Open **`Libraries: Manager`** and install "Trigger".
 
 **Manually:** create a page in your space and paste the contents of
-[`Jump.md`](./Jump.md).
+[`Trigger.md`](./Trigger.md).
 
 ## Usage
 
-1. Run **`Navigate: Jump`** (command palette).
+1. Run **`Navigate: Trigger`** (command palette).
 2. Yellow letter labels appear on every link, button and task checkbox in view.
 3. Type a label to activate it (auto-fires on a unique match).
    - `Backspace` edits your input, `Escape` (or any non-hint key) dismisses.
@@ -55,7 +55,7 @@ doesn't clash with typing):
 
 ```lua
 command.update {
-  name = "Navigate: Jump",
+  name = "Navigate: Trigger",
   key = "Ctrl-Shift-f",
   mac = "Cmd-Shift-f",
 }

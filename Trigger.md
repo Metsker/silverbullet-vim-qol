@@ -1,10 +1,10 @@
 ---
-name: Library/Jump
-description: Vimium-style keyboard navigation - hint labels on links, buttons, tasks and top-bar actions
+name: Library/Trigger
+description: Vimium-style keyboard navigation - hint labels to trigger links, buttons, tasks and top-bar actions
 tags: meta
 ---
 
-Vimium-style keyboard navigation. Run **Navigate: Jump** (from the Command
+Vimium-style keyboard navigation. Run **Navigate: Trigger** (from the Command
 Palette) to overlay short letter labels on every link, button and task checkbox
 on screen - plus the **top-bar actions** (page name / rename, home, and the
 other action buttons). Type a label to activate it - no mouse needed. Great for
@@ -26,7 +26,7 @@ To bind it to a key, add this to your `CONFIG` page (use a modifier combo, not a
 bare letter, so it doesn't clash with typing):
 
     command.update {
-      name = "Navigate: Jump",
+      name = "Navigate: Trigger",
       key = "Ctrl-Shift-f",
       mac = "Cmd-Shift-f",
     }
@@ -204,14 +204,14 @@ local function showHints()
   teardown()
   local targets = collectTargets()
   if #targets == 0 then
-    editor.flashNotification("Jump: nothing clickable in view", "info")
+    editor.flashNotification("Trigger: nothing clickable in view", "info")
     return
   end
 
   local doc = js.window.document
   local labels = generateLabels(#targets)
   local overlay = doc.createElement("div")
-  overlay.className = "sb-jump-hints"
+  overlay.className = "sb-trigger-hints"
   overlay.style.cssText =
     "position:fixed; inset:0; margin:0; padding:0; border:0;" ..
     " z-index:2147483646; pointer-events:none;"
@@ -221,7 +221,7 @@ local function showHints()
     local el = targets[i]
     local rect = el.getBoundingClientRect()
     local badge = doc.createElement("div")
-    badge.className = "sb-jump-hint"
+    badge.className = "sb-trigger-hint"
     badge.textContent = labels[i]:upper()
     badge.style.cssText =
       "position:fixed; left:" .. px(math.max(0, rect.left)) ..
@@ -309,16 +309,16 @@ end
 
 -- Expose the current handler so the permanent bootstrap listener (below) can
 -- always reach the latest definition, even after scripts are reloaded.
-js.window.__sbJumpHandler = handleKey
+js.window.__sbTriggerHandler = handleKey
 
 -- Install exactly one document-level capture listener for the lifetime of the
 -- page. It indirects through the handler stored on `window`, so reloading
 -- scripts swaps in fresh logic without stacking listeners. Capture phase +
 -- stopPropagation keeps keys away from CodeMirror while hints are active.
-if not js.window.__sbJumpBootstrapped then
-  js.window.__sbJumpBootstrapped = true
+if not js.window.__sbTriggerBootstrapped then
+  js.window.__sbTriggerBootstrapped = true
   js.window.document.addEventListener("keydown", function(e)
-    local handler = js.window.__sbJumpHandler
+    local handler = js.window.__sbTriggerHandler
     if handler then
       handler(e)
     end
@@ -326,7 +326,7 @@ if not js.window.__sbJumpBootstrapped then
 end
 
 command.define {
-  name = "Navigate: Jump",
+  name = "Navigate: Trigger",
   run = showHints,
 }
 ```
