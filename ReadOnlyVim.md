@@ -15,14 +15,14 @@ Currently provided:
 * `j` - scroll down
 * `k` - scroll up
 
-Scrolling is **smooth**: each press glides a fixed distance over a fixed time
-with an ease-out curve and lands exactly on target (no drift). It's frame-rate
-independent - it advances by elapsed time, not per-frame fractions - so it feels
-the same on a 60 Hz or 144 Hz display. Holding `j`/`k` tracks the key-repeat for
-a continuous cruise; releasing settles within about one step. Two tunables below:
+Scrolling is **velocity based**, not step based: holding `j`/`k` ramps to a
+fixed cruise speed almost instantly and scrolls smoothly and steadily for as
+long as you hold - it never accumulates or accelerates. A quick tap is just a
+brief scroll, so it nudges the page a little. Releasing ramps back to a stop.
+Two tunables below:
 
-* `SCROLL_STEP` - pixels advanced per key press (bigger = faster cruise).
-* `SCROLL_DURATION` - milliseconds to glide one press (smaller = snappier, larger = floatier).
+* `SCROLL_SPEED` - cruise speed in pixels per second while held (lower = slower).
+* `RAMP_MS` - milliseconds to reach / leave cruise speed (smaller = snappier start and stop, larger = softer).
 
 It also yields to the [Trigger](Trigger.md) overlay, so `j`/`k` still work as
 hint letters while hints are showing.
@@ -30,15 +30,8 @@ hint letters while hints are showing.
 ```space-lua
 -- priority: 10
 
-local SCROLL_STEP = 70      -- pixels advanced per key press (auto-repeats while held)
-local SCROLL_DURATION = 140 -- milliseconds to glide one press worth of distance
-
--- Ease-out cubic: fast start, gentle finish. Frame-rate independent because we
--- feed it elapsed-time fraction t in [0,1], not a per-frame constant.
-local function easeOut(t)
-  local u = 1 - t
-  return 1 - u * u * u
-end
+local SCROLL_SPEED = 500 -- cruise speed in px/s while a key is held
+local RAMP_MS = 60       -- ms to accelerate to / decelerate from cruise speed
 
 local function vimReadOnlyActive()
   local doc = js.window.document
@@ -58,69 +51,77 @@ local function getScroller()
   return js.window.document.querySelector(".cm-scroller")
 end
 
--- One animation frame: interpolate from the press anchor toward the target by
--- the eased time fraction, then either schedule the next frame or land exactly
--- on target. The next-frame callback indirects through `window` so a reload
--- mid-animation never stacks loops.
+-- One animation frame: ramp the live velocity toward the held direction's cruise
+-- speed (or toward 0 when released) and advance the scroller by velocity * dt.
+-- dt is real elapsed time, so motion is identical across refresh rates. The
+-- next-frame callback indirects through `window` so a reload never stacks loops.
 local function animate()
   local scroller = getScroller()
-  local target = js.window.__sbReadOnlyVimScrollTarget
-  if not scroller or target == nil then
-    js.window.__sbReadOnlyVimScrollAnimating = false
+  if not scroller then
+    js.window.__sbReadOnlyVimAnimating = false
     return
   end
-  local start = js.window.__sbReadOnlyVimScrollStart
-  local startTime = js.window.__sbReadOnlyVimScrollStartTime
-  local duration = js.window.__sbReadOnlyVimScrollDuration
-  local elapsed = js.window.performance.now() - startTime
-  local t = elapsed / duration
-  if t >= 1 then
-    -- Land exactly on target and stop - no asymptotic drift.
-    scroller.scrollTop = target
-    js.window.__sbReadOnlyVimScrollTarget = nil
-    js.window.__sbReadOnlyVimScrollAnimating = false
-    return
+  local now = js.window.performance.now()
+  local dt = (now - js.window.__sbReadOnlyVimLastTime) / 1000
+  js.window.__sbReadOnlyVimLastTime = now
+  if dt < 0 then
+    dt = 0
   end
-  scroller.scrollTop = start + (target - start) * easeOut(t)
-  js.window.requestAnimationFrame(function()
-    local fn = js.window.__sbReadOnlyVimScrollAnimate
-    if fn then
-      fn()
+  if dt > 0.05 then
+    dt = 0.05 -- clamp big gaps (background tab) so we never jump
+  end
+
+  local dir = js.window.__sbReadOnlyVimHeldDir or 0
+  local targetVel = dir * SCROLL_SPEED
+  local vel = js.window.__sbReadOnlyVimVelocity or 0
+
+  -- Move velocity toward target by at most (cruise / ramp) per second.
+  local maxDelta = (SCROLL_SPEED / (RAMP_MS / 1000)) * dt
+  if vel < targetVel then
+    vel = vel + maxDelta
+    if vel > targetVel then
+      vel = targetVel
     end
-  end)
+  elseif vel > targetVel then
+    vel = vel - maxDelta
+    if vel < targetVel then
+      vel = targetVel
+    end
+  end
+
+  local pos = scroller.scrollTop + vel * dt
+  local max = scroller.scrollHeight - scroller.clientHeight
+  if pos <= 0 then
+    pos = 0
+    vel = 0
+  elseif pos >= max then
+    pos = max
+    vel = 0
+  end
+  scroller.scrollTop = pos
+  js.window.__sbReadOnlyVimVelocity = vel
+
+  -- Keep animating while held, or while coasting to a stop.
+  if dir ~= 0 or vel > 0.5 or vel < -0.5 then
+    js.window.requestAnimationFrame(function()
+      local fn = js.window.__sbReadOnlyVimScrollAnimate
+      if fn then
+        fn()
+      end
+    end)
+  else
+    js.window.__sbReadOnlyVimAnimating = false
+  end
 end
 
 -- Expose the current frame function so the running loop always reaches the latest
 -- definition after a script reload.
 js.window.__sbReadOnlyVimScrollAnimate = animate
 
-local function scrollBy(delta)
-  local scroller = getScroller()
-  if not scroller then
-    return
-  end
-  local current = scroller.scrollTop
-  -- Extend the in-flight target so repeated presses accumulate (cruise), then
-  -- re-anchor the glide to the live position and restart its clock.
-  local target = js.window.__sbReadOnlyVimScrollTarget
-  if target == nil then
-    target = current
-  end
-  target = target + delta
-  -- Clamp to the scrollable range.
-  local max = scroller.scrollHeight - scroller.clientHeight
-  if target < 0 then
-    target = 0
-  end
-  if target > max then
-    target = max
-  end
-  js.window.__sbReadOnlyVimScrollTarget = target
-  js.window.__sbReadOnlyVimScrollStart = current
-  js.window.__sbReadOnlyVimScrollStartTime = js.window.performance.now()
-  js.window.__sbReadOnlyVimScrollDuration = SCROLL_DURATION
-  if not js.window.__sbReadOnlyVimScrollAnimating then
-    js.window.__sbReadOnlyVimScrollAnimating = true
+local function startLoop()
+  if not js.window.__sbReadOnlyVimAnimating then
+    js.window.__sbReadOnlyVimAnimating = true
+    js.window.__sbReadOnlyVimLastTime = js.window.performance.now()
     local fn = js.window.__sbReadOnlyVimScrollAnimate
     if fn then
       fn()
@@ -128,7 +129,7 @@ local function scrollBy(delta)
   end
 end
 
-local function handleScrollKey(e)
+local function handleKeyDown(e)
   -- Leave keys alone while a Trigger overlay is up, or with modifiers held.
   if js.window.document.querySelector(".sb-trigger-hints") then
     return
@@ -145,26 +146,55 @@ local function handleScrollKey(e)
   end
   e.preventDefault()
   e.stopPropagation()
-  if key == "j" then
-    scrollBy(SCROLL_STEP)
-  else
-    scrollBy(-SCROLL_STEP)
+  -- Set the held direction; auto-repeat keydowns just re-affirm it (no buildup).
+  local dir = 1
+  if key == "k" then
+    dir = -1
+  end
+  js.window.__sbReadOnlyVimHeldDir = dir
+  js.window.__sbReadOnlyVimHeldKey = key
+  startLoop()
+end
+
+local function handleKeyUp(e)
+  local key = e.key
+  if key ~= "j" and key ~= "k" then
+    return
+  end
+  -- Only stop if the released key is the one currently driving the scroll.
+  if js.window.__sbReadOnlyVimHeldKey == key then
+    js.window.__sbReadOnlyVimHeldDir = 0
+    js.window.__sbReadOnlyVimHeldKey = nil
   end
 end
 
--- Expose the current handler so the permanent bootstrap listener always reaches
--- the latest definition after a script reload.
-js.window.__sbReadOnlyVimScrollHandler = handleScrollKey
+-- Expose the current handlers so the permanent bootstrap listeners always reach
+-- the latest definitions after a script reload.
+js.window.__sbReadOnlyVimScrollHandler = handleKeyDown
+js.window.__sbReadOnlyVimScrollKeyupHandler = handleKeyUp
 
--- One document-level capture listener for the lifetime of the page; it indirects
--- through the handler stored on `window`, so reloads don't stack listeners.
-if not js.window.__sbReadOnlyVimScrollBootstrapped then
-  js.window.__sbReadOnlyVimScrollBootstrapped = true
+-- Permanent document-level capture listeners for keydown + keyup, plus a blur
+-- safety stop. They indirect through the handlers stored on `window`, so reloads
+-- don't stack listeners. A fresh guard name ensures the keyup/blur listeners get
+-- added even on clients that bootstrapped an earlier (keydown-only) version.
+if not js.window.__sbReadOnlyVimBootstrappedV2 then
+  js.window.__sbReadOnlyVimBootstrappedV2 = true
   js.window.document.addEventListener("keydown", function(e)
-    local handler = js.window.__sbReadOnlyVimScrollHandler
-    if handler then
-      handler(e)
+    local h = js.window.__sbReadOnlyVimScrollHandler
+    if h then
+      h(e)
     end
   end, true)
+  js.window.document.addEventListener("keyup", function(e)
+    local h = js.window.__sbReadOnlyVimScrollKeyupHandler
+    if h then
+      h(e)
+    end
+  end, true)
+  -- If the window loses focus mid-hold the keyup may never arrive; stop cleanly.
+  js.window.addEventListener("blur", function(e)
+    js.window.__sbReadOnlyVimHeldDir = 0
+    js.window.__sbReadOnlyVimHeldKey = nil
+  end)
 end
 ```
