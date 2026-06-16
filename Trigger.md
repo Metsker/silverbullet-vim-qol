@@ -127,7 +127,16 @@ local function collectTargets()
       local hasSize = rect.width > 0 or rect.height > 0
       local onScreen = rect.bottom > 0 and rect.right > 0
         and rect.top < viewHeight and rect.left < viewWidth
-      if hasSize and onScreen then
+      -- Skip elements that are laid out but not actually shown - e.g. entries
+      -- inside a collapsed <details> (a folded Table of Contents). Those keep a
+      -- real bounding rect because the content is hidden via content-visibility
+      -- (so it stays text-searchable), not display:none, so the size/on-screen
+      -- checks alone don't catch them; checkVisibility() does.
+      local visible = true
+      if el.checkVisibility then
+        visible = el.checkVisibility()
+      end
+      if hasSize and onScreen and visible then
         candidates[#candidates + 1] = el
       end
     end
