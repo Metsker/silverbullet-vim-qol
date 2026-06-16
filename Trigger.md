@@ -106,26 +106,34 @@ end
 -- The two roots are disjoint, so a hit is in at most one of them.
 local function collectTargets()
   local doc = js.window.document
+  -- Each root carries the y above which its targets are not really visible. The
+  -- top bar is valid from the viewport top (0); page content scrolls up *behind*
+  -- the (opaque) top bar, so its effective top is the bar's bottom edge.
   local roots = {}
   local topBar = doc.querySelector("#sb-top")
+  local topBarBottom = 0
   if topBar then
-    roots[#roots + 1] = topBar
+    local tbRect = topBar.getBoundingClientRect()
+    topBarBottom = tbRect.bottom
+    roots[#roots + 1] = { el = topBar, top = 0 }
   end
   local content = doc.querySelector(".cm-content")
   if content then
-    roots[#roots + 1] = content
+    roots[#roots + 1] = { el = content, top = topBarBottom }
   end
 
   local viewWidth = js.window.innerWidth
   local viewHeight = js.window.innerHeight
   local candidates = {}
   for _, root in ipairs(roots) do
-    local nodes = root.querySelectorAll(selector)
+    local nodes = root.el.querySelectorAll(selector)
     for i = 1, nodes.length do
       local el = nodes[i]
       local rect = el.getBoundingClientRect()
       local hasSize = rect.width > 0 or rect.height > 0
-      local onScreen = rect.bottom > 0 and rect.right > 0
+      -- Require the element to extend below the root's visible top, so entries
+      -- fully tucked behind the top bar are skipped.
+      local onScreen = rect.bottom > root.top and rect.right > 0
         and rect.top < viewHeight and rect.left < viewWidth
       -- Skip elements that are laid out but not actually shown - e.g. entries
       -- inside a collapsed <details> (a folded Table of Contents). Those keep a
@@ -223,6 +231,14 @@ local function showHints()
   end
 
   local doc = js.window.document
+  -- Clamp page-content labels to just below the top bar so a partially-occluded
+  -- element's badge stays visible instead of hiding behind the bar.
+  local topBar = doc.querySelector("#sb-top")
+  local topBarBottom = 0
+  if topBar then
+    local tbRect = topBar.getBoundingClientRect()
+    topBarBottom = tbRect.bottom
+  end
   local labels = generateLabels(#targets)
   local overlay = doc.createElement("div")
   overlay.className = "sb-trigger-hints"
@@ -234,12 +250,16 @@ local function showHints()
   for i = 1, #targets do
     local el = targets[i]
     local rect = el.getBoundingClientRect()
+    local minTop = 0
+    if topBar and not topBar.contains(el) then
+      minTop = topBarBottom
+    end
     local badge = doc.createElement("div")
     badge.className = "sb-trigger-hint"
     badge.textContent = labels[i]:upper()
     badge.style.cssText =
       "position:fixed; left:" .. px(math.max(0, rect.left)) ..
-      "; top:" .. px(math.max(0, rect.top)) .. ";" ..
+      "; top:" .. px(math.max(minTop, rect.top)) .. ";" ..
       " background:#ffcf4a; color:#1a1a1a;" ..
       " font:bold 11px/1.1 ui-monospace,SFMono-Regular,Menlo,monospace;" ..
       " padding:1px 4px; border-radius:4px; border:1px solid rgba(0,0,0,0.35);" ..
