@@ -102,28 +102,49 @@ local function px(v)
   return math.floor(v) .. "px"
 end
 
+-- The opaque chrome that overlaps the scrolling page: the top bar (#sb-top)
+-- covers a strip at the top, and sticky bottom panels (the Vim status line,
+-- the search box) cover one at the bottom. Returns the top-bar element plus the
+-- y-band [topBarBottom, bottomLimit] in which page content is actually visible.
+local function chromeLimits()
+  local doc = js.window.document
+  local topBar = doc.querySelector("#sb-top")
+  local topBarBottom = 0
+  if topBar then
+    local r = topBar.getBoundingClientRect()
+    topBarBottom = r.bottom
+  end
+  local bottomLimit = js.window.innerHeight
+  local bottomPanel = doc.querySelector(".cm-panels-bottom")
+  if bottomPanel then
+    local r = bottomPanel.getBoundingClientRect()
+    if r.height > 0 then
+      bottomLimit = r.top
+    end
+  end
+  return topBar, topBarBottom, bottomLimit
+end
+
 -- Collect visible, clickable elements from the top bar and the page content.
 -- The two roots are disjoint, so a hit is in at most one of them.
 local function collectTargets()
   local doc = js.window.document
-  -- Each root carries the y above which its targets are not really visible. The
-  -- top bar is valid from the viewport top (0); page content scrolls up *behind*
-  -- the (opaque) top bar, so its effective top is the bar's bottom edge.
+  local viewWidth = js.window.innerWidth
+  local viewHeight = js.window.innerHeight
+  local topBar, topBarBottom, bottomLimit = chromeLimits()
+
+  -- Each root carries the visible y-band for its targets. The top bar is valid
+  -- from the viewport top; page content is only visible between the bar's bottom
+  -- and the top of the (sticky) bottom panel - it scrolls behind both.
   local roots = {}
-  local topBar = doc.querySelector("#sb-top")
-  local topBarBottom = 0
   if topBar then
-    local tbRect = topBar.getBoundingClientRect()
-    topBarBottom = tbRect.bottom
-    roots[#roots + 1] = { el = topBar, top = 0 }
+    roots[#roots + 1] = { el = topBar, top = 0, bottom = viewHeight }
   end
   local content = doc.querySelector(".cm-content")
   if content then
-    roots[#roots + 1] = { el = content, top = topBarBottom }
+    roots[#roots + 1] = { el = content, top = topBarBottom, bottom = bottomLimit }
   end
 
-  local viewWidth = js.window.innerWidth
-  local viewHeight = js.window.innerHeight
   local candidates = {}
   for _, root in ipairs(roots) do
     local nodes = root.el.querySelectorAll(selector)
@@ -131,10 +152,10 @@ local function collectTargets()
       local el = nodes[i]
       local rect = el.getBoundingClientRect()
       local hasSize = rect.width > 0 or rect.height > 0
-      -- Require the element to extend below the root's visible top, so entries
-      -- fully tucked behind the top bar are skipped.
+      -- Require the element inside the root's visible band, so entries tucked
+      -- behind the top bar or the bottom panel are skipped.
       local onScreen = rect.bottom > root.top and rect.right > 0
-        and rect.top < viewHeight and rect.left < viewWidth
+        and rect.top < root.bottom and rect.left < viewWidth
       -- Skip elements that are laid out but not actually shown - e.g. entries
       -- inside a collapsed <details> (a folded Table of Contents). Those keep a
       -- real bounding rect because the content is hidden via content-visibility
@@ -231,14 +252,10 @@ local function showHints()
   end
 
   local doc = js.window.document
-  -- Clamp page-content labels to just below the top bar so a partially-occluded
-  -- element's badge stays visible instead of hiding behind the bar.
-  local topBar = doc.querySelector("#sb-top")
-  local topBarBottom = 0
-  if topBar then
-    local tbRect = topBar.getBoundingClientRect()
-    topBarBottom = tbRect.bottom
-  end
+  -- Clamp page-content labels into the visible band so a partially-occluded
+  -- element's badge stays visible instead of hiding behind the top bar or the
+  -- bottom panel.
+  local topBar, topBarBottom, bottomLimit = chromeLimits()
   local labels = generateLabels(#targets)
   local overlay = doc.createElement("div")
   overlay.className = "sb-trigger-hints"
@@ -246,30 +263,46 @@ local function showHints()
     "position:fixed; inset:0; margin:0; padding:0; border:0;" ..
     " z-index:2147483646; pointer-events:none;"
 
+  -- Append the overlay first so each badge's real rendered height can be measured
+  -- (rather than hardcoded) when keeping labels clear of the bottom panel.
+  doc.body.appendChild(overlay)
+
   local hints = {}
+  local badgeHeight = 0
   for i = 1, #targets do
     local el = targets[i]
     local rect = el.getBoundingClientRect()
-    local minTop = 0
-    if topBar and not topBar.contains(el) then
-      minTop = topBarBottom
-    end
     local badge = doc.createElement("div")
     badge.className = "sb-trigger-hint"
     badge.textContent = labels[i]:upper()
     badge.style.cssText =
-      "position:fixed; left:" .. px(math.max(0, rect.left)) ..
-      "; top:" .. px(math.max(minTop, rect.top)) .. ";" ..
+      "position:fixed; left:" .. px(math.max(0, rect.left)) .. ";" ..
       " background:#ffcf4a; color:#1a1a1a;" ..
       " font:bold 11px/1.1 ui-monospace,SFMono-Regular,Menlo,monospace;" ..
       " padding:1px 4px; border-radius:4px; border:1px solid rgba(0,0,0,0.35);" ..
       " box-shadow:0 1px 3px rgba(0,0,0,0.4); white-space:nowrap;" ..
       " pointer-events:none; z-index:2147483647;"
     overlay.appendChild(badge)
+    -- All badges share styling, so measure the height once from the live element.
+    if badgeHeight == 0 then
+      badgeHeight = badge.offsetHeight
+    end
+    -- Keep page-content labels within the visible band so they don't hide behind
+    -- the top bar or the bottom panel. Top-bar labels keep their position.
+    local badgeTop = rect.top
+    if topBar and not topBar.contains(el) then
+      if badgeTop < topBarBottom then
+        badgeTop = topBarBottom
+      end
+      local maxTop = bottomLimit - badgeHeight
+      if badgeTop > maxTop then
+        badgeTop = maxTop
+      end
+    end
+    badge.style.top = px(math.max(0, badgeTop))
     hints[#hints + 1] = { el = el, label = labels[i], badge = badge }
   end
 
-  doc.body.appendChild(overlay)
   session = { overlay = overlay, hints = hints, typed = "" }
 end
 
