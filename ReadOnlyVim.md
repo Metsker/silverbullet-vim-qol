@@ -15,19 +15,30 @@ Currently provided:
 * `j` - scroll down
 * `k` - scroll up
 
-Scrolling is **smooth**: each key press nudges a scroll target, and a
-`requestAnimationFrame` loop eases the page toward it - so holding `j`/`k` builds
-momentum and releasing glides to a stop. Tune the feel with the two constants
-below: `SCROLL_STEP` (pixels added per key press) and `EASING` (fraction of the
-remaining distance covered each frame; higher = snappier, lower = floatier). It
-also yields to the [Trigger](Trigger.md) overlay, so `j`/`k` still work as hint
-letters while hints are showing.
+Scrolling is **smooth**: each press glides a fixed distance over a fixed time
+with an ease-out curve and lands exactly on target (no drift). It's frame-rate
+independent - it advances by elapsed time, not per-frame fractions - so it feels
+the same on a 60 Hz or 144 Hz display. Holding `j`/`k` tracks the key-repeat for
+a continuous cruise; releasing settles within about one step. Two tunables below:
+
+* `SCROLL_STEP` - pixels advanced per key press (bigger = faster cruise).
+* `SCROLL_DURATION` - milliseconds to glide one press (smaller = snappier, larger = floatier).
+
+It also yields to the [Trigger](Trigger.md) overlay, so `j`/`k` still work as
+hint letters while hints are showing.
 
 ```space-lua
 -- priority: 10
 
-local SCROLL_STEP = 64 -- pixels added to the scroll target per key press (auto-repeats while held)
-local EASING = 0.2     -- fraction of the remaining distance covered each frame (0-1; higher = snappier)
+local SCROLL_STEP = 70      -- pixels advanced per key press (auto-repeats while held)
+local SCROLL_DURATION = 140 -- milliseconds to glide one press worth of distance
+
+-- Ease-out cubic: fast start, gentle finish. Frame-rate independent because we
+-- feed it elapsed-time fraction t in [0,1], not a per-frame constant.
+local function easeOut(t)
+  local u = 1 - t
+  return 1 - u * u * u
+end
 
 local function vimReadOnlyActive()
   local doc = js.window.document
@@ -47,9 +58,10 @@ local function getScroller()
   return js.window.document.querySelector(".cm-scroller")
 end
 
--- One animation frame: ease the scroller toward the stored target, then either
--- schedule the next frame or stop once we've effectively arrived. The next-frame
--- callback indirects through `window` so a reload mid-animation never stacks loops.
+-- One animation frame: interpolate from the press anchor toward the target by
+-- the eased time fraction, then either schedule the next frame or land exactly
+-- on target. The next-frame callback indirects through `window` so a reload
+-- mid-animation never stacks loops.
 local function animate()
   local scroller = getScroller()
   local target = js.window.__sbReadOnlyVimScrollTarget
@@ -57,15 +69,19 @@ local function animate()
     js.window.__sbReadOnlyVimScrollAnimating = false
     return
   end
-  local current = scroller.scrollTop
-  local distance = target - current
-  if distance < 1 and distance > -1 then
+  local start = js.window.__sbReadOnlyVimScrollStart
+  local startTime = js.window.__sbReadOnlyVimScrollStartTime
+  local duration = js.window.__sbReadOnlyVimScrollDuration
+  local elapsed = js.window.performance.now() - startTime
+  local t = elapsed / duration
+  if t >= 1 then
+    -- Land exactly on target and stop - no asymptotic drift.
     scroller.scrollTop = target
     js.window.__sbReadOnlyVimScrollTarget = nil
     js.window.__sbReadOnlyVimScrollAnimating = false
     return
   end
-  scroller.scrollTop = current + distance * EASING
+  scroller.scrollTop = start + (target - start) * easeOut(t)
   js.window.requestAnimationFrame(function()
     local fn = js.window.__sbReadOnlyVimScrollAnimate
     if fn then
@@ -83,11 +99,12 @@ local function scrollBy(delta)
   if not scroller then
     return
   end
-  -- Anchor a fresh target to the live scroll position, then push it by delta;
-  -- repeated presses keep extending the same in-flight target (momentum).
+  local current = scroller.scrollTop
+  -- Extend the in-flight target so repeated presses accumulate (cruise), then
+  -- re-anchor the glide to the live position and restart its clock.
   local target = js.window.__sbReadOnlyVimScrollTarget
   if target == nil then
-    target = scroller.scrollTop
+    target = current
   end
   target = target + delta
   -- Clamp to the scrollable range.
@@ -99,6 +116,9 @@ local function scrollBy(delta)
     target = max
   end
   js.window.__sbReadOnlyVimScrollTarget = target
+  js.window.__sbReadOnlyVimScrollStart = current
+  js.window.__sbReadOnlyVimScrollStartTime = js.window.performance.now()
+  js.window.__sbReadOnlyVimScrollDuration = SCROLL_DURATION
   if not js.window.__sbReadOnlyVimScrollAnimating then
     js.window.__sbReadOnlyVimScrollAnimating = true
     local fn = js.window.__sbReadOnlyVimScrollAnimate
