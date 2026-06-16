@@ -6,7 +6,7 @@ Vim-flavored quality-of-life enhancements for
 changes. They reach the DOM through the `js` interop bridge and install
 document-level `keydown` listeners, so they also work on read-only pages.
 
-Two libraries:
+Three libraries:
 
 - **Trigger** (`Trigger.md`) - Vimium-style navigation. Run a command to overlay short
   letter labels on every link, button and task checkbox on screen - plus the
@@ -16,6 +16,11 @@ Two libraries:
   read-only pages while Vim mode is on (where Vim's own motions can't reach the
   unfocusable editor). Holding cruises at a steady speed; a tap nudges a little.
   Inert in edit mode and when Vim is off. Speed is configurable from CONFIG (see below).
+- **InputVim** (`InputVim.md`) - Vim insert-mode line editing in plain text inputs
+  like the command palette, page picker and rename field: `Ctrl-W` (delete word),
+  `Ctrl-U` (delete to line start) and `Ctrl-H` (Backspace). These inputs aren't
+  CodeMirror, so Vim never sees their keys; this also stops an unbound `Ctrl-W`
+  from closing the browser tab. Leaves the editor and its panels to Vim.
 
 ## Install
 
@@ -27,6 +32,7 @@ Two libraries:
    ```
    github:Metsker/silverbullet-vim-qol/Trigger.md
    github:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
+   github:Metsker/silverbullet-vim-qol/InputVim.md
    ```
 
    (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-vim-qol/blob/main/Trigger.md`)
@@ -79,6 +85,19 @@ config.set("readOnlyVim.scrollSpeed", 1600)
 -- smaller = snappier start and stop).
 config.set("readOnlyVim.scrollRampMs", 60)
 ```
+
+## InputVim editing keys
+
+Once installed, these Vim insert-mode edits work in SilverBullet's plain text
+inputs - the command palette, page picker, prompts and the top-bar page-name /
+rename field (the CodeMirror editor already has Vim, so it's left untouched):
+
+- `Ctrl-W` - delete the word before the cursor
+- `Ctrl-U` - delete to the start of the line
+- `Ctrl-H` - delete the character before the cursor (Backspace)
+
+There's nothing to configure. As a side effect, `Ctrl-W` in those inputs no
+longer falls through to the browser and closes the tab.
 
 ## How activation works
 

@@ -19,4 +19,10 @@ author: Metsker
 description: Vim quality-of-life helpers for read-only pages (currently j/k scrolling)
 website: https://github.com/Metsker/silverbullet-vim-qol
 uri: github:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
+---
+name: InputVim
+author: Metsker
+description: Vim insert-mode line editing (Ctrl-W / Ctrl-U / Ctrl-H) in text inputs like the command palette
+website: https://github.com/Metsker/silverbullet-vim-qol
+uri: github:Metsker/silverbullet-vim-qol/InputVim.md
 ```
