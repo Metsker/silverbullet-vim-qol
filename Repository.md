@@ -12,4 +12,10 @@ author: Lev Shchinoff
 description: Vimium-style keyboard navigation - hint labels on links, buttons and tasks
 website: https://github.com/Metsker/silverbullet-link-hints
 uri: ghr:Metsker/silverbullet-link-hints/LinkHints.md
+---
+name: Vim Readonly Scroll
+author: Lev Shchinoff
+description: j/k scrolling on read-only pages when Vim mode is enabled
+website: https://github.com/Metsker/silverbullet-link-hints
+uri: ghr:Metsker/silverbullet-link-hints/VimReadonlyScroll.md
 ```

@@ -1,30 +1,36 @@
 # SilverBullet Link Hints
 
-Vimium-style keyboard navigation for [SilverBullet](https://silverbullet.md).
-Run a command to overlay short letter labels on every link, button and task
-checkbox on screen, then type a label to activate it - no mouse needed. Great
-for triggering buttons and links rendered inside query output.
+Keyboard-navigation enhancements for [SilverBullet](https://silverbullet.md),
+written in pure [Space Lua](https://silverbullet.md/Space%20Lua) - no compiled
+plug, no client changes. They reach the DOM through the `js` interop bridge and
+install document-level `keydown` listeners, so they also work on read-only pages.
 
-It's a single [Space Lua](https://silverbullet.md/Space%20Lua) page - no compiled
-plug, no client changes. It reaches the DOM through the `js` interop bridge and
-installs one document-level `keydown` capture listener, so it also works on
-read-only pages.
+Two libraries:
+
+- **Link Hints** (`LinkHints.md`) - Vimium-style navigation. Run a command to
+  overlay short letter labels on every link, button and task checkbox on screen,
+  then type a label to activate it. Great for triggering buttons and links
+  rendered inside query output.
+- **Vim Readonly Scroll** (`VimReadonlyScroll.md`) - `j`/`k` scrolling on
+  read-only pages while Vim mode is on (where Vim's own motions can't reach the
+  unfocusable editor). Inert in edit mode and when Vim is off.
 
 ## Install
 
 **Via the library installer (recommended):**
 
 1. In your space, run **`Library: Install`** from the command palette.
-2. Paste the URI:
+2. Paste the URI of the library you want:
 
    ```
    ghr:Metsker/silverbullet-link-hints/LinkHints.md
+   ghr:Metsker/silverbullet-link-hints/VimReadonlyScroll.md
    ```
 
-   (or the GitHub form `https://github.com/Metsker/silverbullet-link-hints/blob/main/LinkHints.md`)
+   (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-link-hints/blob/main/LinkHints.md`)
 
-3. It installs as the page `Library/Link Hints`. Run **`Library: Update All`**
-   later to pull new versions.
+3. They install as pages under `Library/`. Run **`Library: Update All`** later to
+   pull new versions.
 
 **Via a repository (if you want it in the `Libraries: Manager` list):**
 
