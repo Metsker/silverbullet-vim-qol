@@ -4,7 +4,7 @@ The [SilverBullet Vim QoL](https://github.com/Metsker/silverbullet-vim-qol)
 library repository.
 
 Add this repository to your space with **`Library: Add Repository`** and the URI
-`ghr:Metsker/silverbullet-vim-qol/Repository.md`, then install the libraries you
+`github:Metsker/silverbullet-vim-qol/Repository.md`, then install the libraries you
 want from **`Libraries: Manager`**.
 
 ```#meta/library/remote
@@ -12,11 +12,11 @@ name: Trigger
 author: Metsker
 description: Vimium-style keyboard navigation - hint labels to trigger links, buttons, tasks and top-bar actions
 website: https://github.com/Metsker/silverbullet-vim-qol
-uri: ghr:Metsker/silverbullet-vim-qol/Trigger.md
+uri: github:Metsker/silverbullet-vim-qol/Trigger.md
 ---
 name: ReadOnlyVim
 author: Metsker
 description: Vim quality-of-life helpers for read-only pages (currently j/k scrolling)
 website: https://github.com/Metsker/silverbullet-vim-qol
-uri: ghr:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
+uri: github:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
 ```

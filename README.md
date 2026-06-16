@@ -24,8 +24,8 @@ Two libraries:
 2. Paste the URI of the library you want:
 
    ```
-   ghr:Metsker/silverbullet-vim-qol/Trigger.md
-   ghr:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
+   github:Metsker/silverbullet-vim-qol/Trigger.md
+   github:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
    ```
 
    (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-vim-qol/blob/main/Trigger.md`)
@@ -35,7 +35,7 @@ Two libraries:
 
 **Via a repository (if you want it in the `Libraries: Manager` list):**
 
-1. Run **`Library: Add Repository`** with `ghr:Metsker/silverbullet-vim-qol/Repository.md`.
+1. Run **`Library: Add Repository`** with `github:Metsker/silverbullet-vim-qol/Repository.md`.
 2. Open **`Libraries: Manager`** and install "Trigger".
 
 **Manually:** create a page in your space and paste the contents of
