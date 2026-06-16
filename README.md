@@ -17,10 +17,12 @@ Three libraries:
   unfocusable editor). Holding cruises at a steady speed; a tap nudges a little.
   Inert in edit mode and when Vim is off. Speed is configurable from CONFIG (see below).
 - **InputVim** (`InputVim.md`) - Vim insert-mode line editing in plain text inputs
-  like the command palette, page picker and rename field: `Ctrl-W` (delete word),
-  `Ctrl-U` (delete to line start) and `Ctrl-H` (Backspace). These inputs aren't
-  CodeMirror, so Vim never sees their keys; this also stops an unbound `Ctrl-W`
-  from closing the browser tab. Leaves the editor and its panels to Vim.
+  everywhere: the command palette, the in-editor search box and Vim `:` command
+  line, prompts, the rename field, and inputs inside panels like the
+  configuration manager. `Ctrl-W` (delete word), `Ctrl-U` (delete to line start)
+  and `Ctrl-H` (Backspace). These inputs aren't CodeMirror, so Vim never sees
+  their keys; this also stops an unbound `Ctrl-W` from closing the browser tab.
+  The editor itself keeps its own Vim.
 
 ## Install
 
@@ -89,8 +91,10 @@ config.set("readOnlyVim.scrollRampMs", 60)
 ## InputVim editing keys
 
 Once installed, these Vim insert-mode edits work in SilverBullet's plain text
-inputs - the command palette, page picker, prompts and the top-bar page-name /
-rename field (the CodeMirror editor already has Vim, so it's left untouched):
+inputs - the command palette and page picker, the in-editor search box and Vim
+`:` command line, prompts, the top-bar page-name / rename field, and inputs
+inside panels such as the configuration manager (the CodeMirror editor itself is
+a contenteditable, not an input, so it's left to Vim):
 
 - `Ctrl-W` - delete the word before the cursor
 - `Ctrl-U` - delete to the start of the line

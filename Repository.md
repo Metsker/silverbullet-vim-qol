@@ -22,7 +22,7 @@ uri: github:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
 ---
 name: InputVim
 author: Metsker
-description: Vim insert-mode line editing (Ctrl-W / Ctrl-U / Ctrl-H) in text inputs like the command palette
+description: Vim insert-mode line editing (Ctrl-W / Ctrl-U / Ctrl-H) in text inputs everywhere - command palette, search, Vim command line and panels like the configuration manager
 website: https://github.com/Metsker/silverbullet-vim-qol
 uri: github:Metsker/silverbullet-vim-qol/InputVim.md
 ```
