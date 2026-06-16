@@ -8,10 +8,10 @@ document-level `keydown` listeners, so they also work on read-only pages.
 
 Two libraries:
 
-- **Link Hints** (`LinkHints.md`) - Vimium-style navigation. Run a command to
-  overlay short letter labels on every link, button and task checkbox on screen,
-  then type a label to activate it. Great for triggering buttons and links
-  rendered inside query output.
+- **Jump** (`Jump.md`) - Vimium-style navigation. Run a command to overlay short
+  letter labels on every link, button and task checkbox on screen - plus the
+  top-bar actions (page name / rename, home, ...) - then type a label to activate
+  it. Great for triggering buttons and links rendered inside query output.
 - **Vim Readonly Scroll** (`VimReadonlyScroll.md`) - `j`/`k` scrolling on
   read-only pages while Vim mode is on (where Vim's own motions can't reach the
   unfocusable editor). Inert in edit mode and when Vim is off.
@@ -24,11 +24,11 @@ Two libraries:
 2. Paste the URI of the library you want:
 
    ```
-   ghr:Metsker/silverbullet-vim-qol/LinkHints.md
+   ghr:Metsker/silverbullet-vim-qol/Jump.md
    ghr:Metsker/silverbullet-vim-qol/VimReadonlyScroll.md
    ```
 
-   (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-vim-qol/blob/main/LinkHints.md`)
+   (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-vim-qol/blob/main/Jump.md`)
 
 3. They install as pages under `Library/`. Run **`Library: Update All`** later to
    pull new versions.
@@ -36,14 +36,14 @@ Two libraries:
 **Via a repository (if you want it in the `Libraries: Manager` list):**
 
 1. Run **`Library: Add Repository`** with `ghr:Metsker/silverbullet-vim-qol/Repository.md`.
-2. Open **`Libraries: Manager`** and install "Link Hints".
+2. Open **`Libraries: Manager`** and install "Jump".
 
 **Manually:** create a page in your space and paste the contents of
-[`LinkHints.md`](./LinkHints.md).
+[`Jump.md`](./Jump.md).
 
 ## Usage
 
-1. Run **`Navigate: Link Hints`** (command palette).
+1. Run **`Navigate: Jump`** (command palette).
 2. Yellow letter labels appear on every link, button and task checkbox in view.
 3. Type a label to activate it (auto-fires on a unique match).
    - `Backspace` edits your input, `Escape` (or any non-hint key) dismisses.
@@ -55,7 +55,7 @@ doesn't clash with typing):
 
 ```lua
 command.update {
-  name = "Navigate: Link Hints",
+  name = "Navigate: Jump",
   key = "Ctrl-Shift-f",
   mac = "Cmd-Shift-f",
 }
@@ -74,6 +74,8 @@ Activation dispatches real mouse events at the element's centre:
 - **Task checkboxes** toggle on `mouseup` (their `click` handler calls
   `preventDefault`), so they get `mouseup` + `click` - covering both inline tasks
   and tasks rendered inside query/transclusion output.
+- **Text inputs** (the top-bar page-name / rename field) are focused and
+  selected, so you can start typing a new name immediately.
 
 ## License
 

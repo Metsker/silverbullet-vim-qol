@@ -8,11 +8,11 @@ Add this repository to your space with **`Library: Add Repository`** and the URI
 want from **`Libraries: Manager`**.
 
 ```#meta/library/remote
-name: Link Hints
+name: Jump
 author: Lev Shchinoff
-description: Vimium-style keyboard navigation - hint labels on links, buttons and tasks
+description: Vimium-style keyboard navigation - hint labels on links, buttons, tasks and top-bar actions
 website: https://github.com/Metsker/silverbullet-vim-qol
-uri: ghr:Metsker/silverbullet-vim-qol/LinkHints.md
+uri: ghr:Metsker/silverbullet-vim-qol/Jump.md
 ---
 name: Vim Readonly Scroll
 author: Lev Shchinoff

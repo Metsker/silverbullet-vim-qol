@@ -1,14 +1,14 @@
 ---
-name: Library/Link Hints
-description: Vimium-style keyboard navigation - hint labels on links, buttons and tasks
+name: Library/Jump
+description: Vimium-style keyboard navigation - hint labels on links, buttons, tasks and top-bar actions
 tags: meta
 ---
 
-Vimium-style keyboard navigation. Run **Navigate: Link Hints** (from the
-Command Palette) to overlay short letter labels on every link, button and task
-checkbox currently on screen. Type a label to activate it - no mouse needed.
-This is especially handy for triggering buttons and links rendered inside query
-output.
+Vimium-style keyboard navigation. Run **Navigate: Jump** (from the Command
+Palette) to overlay short letter labels on every link, button and task checkbox
+on screen - plus the **top-bar actions** (page name / rename, home, and the
+other action buttons). Type a label to activate it - no mouse needed. Great for
+triggering buttons and links rendered inside query output.
 
 While hints are showing:
 
@@ -17,15 +17,16 @@ While hints are showing:
 * `Backspace` removes the last typed letter.
 * `Escape` (or any non-hint key) dismisses the hints.
 
-Activation dispatches a real click at the element's location, so wiki-link
-navigation, external links, widget buttons and task toggles all behave exactly
-as if you had clicked them.
+Activation dispatches a real click at the element's location (so wiki-link
+navigation, external links, widget buttons and task toggles behave exactly as if
+clicked), and focuses text inputs like the page-name field so you can rename
+straight away.
 
 To bind it to a key, add this to your `CONFIG` page (use a modifier combo, not a
 bare letter, so it doesn't clash with typing):
 
     command.update {
-      name = "Navigate: Link Hints",
+      name = "Navigate: Jump",
       key = "Ctrl-Shift-f",
       mac = "Cmd-Shift-f",
     }
@@ -46,12 +47,14 @@ for i = 1, #charset do
   charsetSet[charset:sub(i, i)] = true
 end
 
--- Everything we consider "clickable".
+-- Everything we consider "clickable", searched within both the top bar and the
+-- page content (see collectTargets).
 local selector = table.concat({
   "a[href]",
   "a[data-ref]",
   "button",
   "input[type=checkbox]",
+  "input.sb-page-name-editor",
   ".sb-task-state[data-task-state]",
   "[role=button]",
 }, ", ")
@@ -94,6 +97,56 @@ local function px(v)
   return math.floor(v) .. "px"
 end
 
+-- Collect visible, clickable elements from the top bar and the page content.
+-- The two roots are disjoint, so a hit is in at most one of them.
+local function collectTargets()
+  local doc = js.window.document
+  local roots = {}
+  local topBar = doc.querySelector("#sb-top")
+  if topBar then
+    roots[#roots + 1] = topBar
+  end
+  local content = doc.querySelector(".cm-content")
+  if content then
+    roots[#roots + 1] = content
+  end
+
+  local viewWidth = js.window.innerWidth
+  local viewHeight = js.window.innerHeight
+  local candidates = {}
+  for _, root in ipairs(roots) do
+    local nodes = root.querySelectorAll(selector)
+    for i = 1, nodes.length do
+      local el = nodes[i]
+      local rect = el.getBoundingClientRect()
+      local hasSize = rect.width > 0 or rect.height > 0
+      local onScreen = rect.bottom > 0 and rect.right > 0
+        and rect.top < viewHeight and rect.left < viewWidth
+      if hasSize and onScreen then
+        candidates[#candidates + 1] = el
+      end
+    end
+  end
+
+  -- Keep the innermost element when candidates nest (e.g. the <button> inside
+  -- an <a href> action-button wrapper) so each spot gets a single hint.
+  local targets = {}
+  for i = 1, #candidates do
+    local el = candidates[i]
+    local isAncestor = false
+    for j = 1, #candidates do
+      if i ~= j and el.contains(candidates[j]) then
+        isAncestor = true
+        break
+      end
+    end
+    if not isAncestor then
+      targets[#targets + 1] = el
+    end
+  end
+  return targets
+end
+
 local function teardown()
   if session then
     if session.overlay and session.overlay.parentNode then
@@ -103,38 +156,37 @@ local function teardown()
   end
 end
 
--- Activate an element by simulating a real mouse interaction at its centre.
--- Genuine coordinates let SilverBullet's own click handler resolve the document
--- position for in-page links. Links and buttons act on "click"; task checkboxes
--- toggle on "mouseup" (their "click" handler calls preventDefault), so
--- checkboxes get the full mousedown/mouseup/click sequence - this covers both
--- inline tasks and tasks rendered inside query output.
+local function fireMouse(el, kind)
+  local rect = el.getBoundingClientRect()
+  el.dispatchEvent(js.new(js.window.MouseEvent, kind, {
+    bubbles = true,
+    cancelable = true,
+    view = js.window,
+    button = 0,
+    clientX = rect.left + rect.width / 2,
+    clientY = rect.top + rect.height / 2,
+  }))
+end
+
+-- Activate an element. Links and buttons act on "click" with genuine
+-- coordinates (so SilverBullet's own click handling resolves the document
+-- position). Task checkboxes toggle on "mouseup" (their "click" handler calls
+-- preventDefault); a preceding "mousedown" would make the focused editor
+-- re-render and detach the checkbox before the toggle lands, so it is skipped.
+-- Text inputs (e.g. the page-name / rename field) are focused for editing.
 local function activate(el)
   teardown()
-  local rect = el.getBoundingClientRect()
-  local centreX = rect.left + rect.width / 2
-  local centreY = rect.top + rect.height / 2
-  local function fire(kind)
-    el.dispatchEvent(js.new(js.window.MouseEvent, kind, {
-      bubbles = true,
-      cancelable = true,
-      view = js.window,
-      button = 0,
-      clientX = centreX,
-      clientY = centreY,
-    }))
+  if el.tagName == "INPUT" then
+    if el.type == "checkbox" then
+      fireMouse(el, "mouseup")
+      fireMouse(el, "click")
+    else
+      el.focus()
+      el.select()
+    end
+    return
   end
-  if el.tagName == "INPUT" and el.type == "checkbox" then
-    -- Inline tasks toggle on "mouseup". A preceding "mousedown" makes the
-    -- focused editor re-render and detach this checkbox before the toggle
-    -- lands, so it is deliberately skipped. The trailing "click" covers tasks
-    -- rendered inside query/transclusion output, which toggle via the
-    -- checkbox's default click instead.
-    fire("mouseup")
-    fire("click")
-  else
-    fire("click")
-  end
+  fireMouse(el, "click")
 end
 
 -- Hide labels that no longer match the typed prefix.
@@ -150,36 +202,16 @@ end
 
 local function showHints()
   teardown()
-  local doc = js.window.document
-  local root = doc.querySelector(".cm-content") or doc.body
-  if not root then
-    editor.flashNotification("Link Hints: no editor content found", "error")
-    return
-  end
-
-  local nodes = root.querySelectorAll(selector)
-  local viewWidth = js.window.innerWidth
-  local viewHeight = js.window.innerHeight
-  local targets = {}
-  for i = 1, nodes.length do
-    local el = nodes[i]
-    local rect = el.getBoundingClientRect()
-    local hasSize = rect.width > 0 or rect.height > 0
-    local onScreen = rect.bottom > 0 and rect.right > 0
-      and rect.top < viewHeight and rect.left < viewWidth
-    if hasSize and onScreen then
-      targets[#targets + 1] = el
-    end
-  end
-
+  local targets = collectTargets()
   if #targets == 0 then
-    editor.flashNotification("Link Hints: nothing clickable in view", "info")
+    editor.flashNotification("Jump: nothing clickable in view", "info")
     return
   end
 
+  local doc = js.window.document
   local labels = generateLabels(#targets)
   local overlay = doc.createElement("div")
-  overlay.className = "sb-link-hints"
+  overlay.className = "sb-jump-hints"
   overlay.style.cssText =
     "position:fixed; inset:0; margin:0; padding:0; border:0;" ..
     " z-index:2147483646; pointer-events:none;"
@@ -189,7 +221,7 @@ local function showHints()
     local el = targets[i]
     local rect = el.getBoundingClientRect()
     local badge = doc.createElement("div")
-    badge.className = "sb-link-hint"
+    badge.className = "sb-jump-hint"
     badge.textContent = labels[i]:upper()
     badge.style.cssText =
       "position:fixed; left:" .. px(math.max(0, rect.left)) ..
@@ -277,16 +309,16 @@ end
 
 -- Expose the current handler so the permanent bootstrap listener (below) can
 -- always reach the latest definition, even after scripts are reloaded.
-js.window.__sbLinkHintsHandler = handleKey
+js.window.__sbJumpHandler = handleKey
 
 -- Install exactly one document-level capture listener for the lifetime of the
 -- page. It indirects through the handler stored on `window`, so reloading
 -- scripts swaps in fresh logic without stacking listeners. Capture phase +
 -- stopPropagation keeps keys away from CodeMirror while hints are active.
-if not js.window.__sbLinkHintsBootstrapped then
-  js.window.__sbLinkHintsBootstrapped = true
+if not js.window.__sbJumpBootstrapped then
+  js.window.__sbJumpBootstrapped = true
   js.window.document.addEventListener("keydown", function(e)
-    local handler = js.window.__sbLinkHintsHandler
+    local handler = js.window.__sbJumpHandler
     if handler then
       handler(e)
     end
@@ -294,7 +326,7 @@ if not js.window.__sbLinkHintsBootstrapped then
 end
 
 command.define {
-  name = "Navigate: Link Hints",
+  name = "Navigate: Jump",
   run = showHints,
 }
 ```

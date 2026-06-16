@@ -14,7 +14,7 @@ never interferes with typing or with Vim's normal `j`/`k` motion in edit mode.
 * `k` - scroll up
 
 Adjust `SCROLL_STEP` below to taste (pixels per key press; the key auto-repeats
-while held). It also yields to the [Link Hints](LinkHints.md) overlay, so `j`/`k`
+while held). It also yields to the [Jump](Jump.md) overlay, so `j`/`k`
 still work as hint letters while hints are showing.
 
 ```space-lua
@@ -37,8 +37,8 @@ local function vimReadOnlyActive()
 end
 
 local function handleScrollKey(e)
-  -- Leave keys alone while a Link Hints overlay is up, or with modifiers held.
-  if js.window.document.querySelector(".sb-link-hints") then
+  -- Leave keys alone while a Jump overlay is up, or with modifiers held.
+  if js.window.document.querySelector(".sb-jump-hints") then
     return
   end
   if e.ctrlKey or e.metaKey or e.altKey then
