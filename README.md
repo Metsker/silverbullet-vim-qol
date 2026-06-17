@@ -6,7 +6,7 @@ Vim-flavored quality-of-life enhancements for
 changes. They reach the DOM through the `js` interop bridge and install
 document-level `keydown` listeners, so they also work on read-only pages.
 
-Three libraries:
+Four libraries:
 
 - **Trigger** (`Trigger.md`) - Vimium-style navigation. Run a command to overlay short
   letter labels on every link, button and task checkbox on screen - plus the
@@ -22,6 +22,11 @@ Three libraries:
   (delete to line start) and `Ctrl-H` (Backspace). These inputs aren't CodeMirror,
   so Vim never sees their keys; this also stops an unbound `Ctrl-W` from closing
   the browser tab. The editor itself keeps its own Vim.
+- **LiveGrep** (`LiveGrep.md`) - fuzzy full-text search across the whole space, a
+  Telescope `live_grep` for SilverBullet. Run **Navigate: Live Grep** to open the
+  filter box over every line of every page; type to fuzzy-match and jump straight
+  to the line. It reads page bodies, so it matches inside code blocks and
+  frontmatter too - not just indexed objects.
 
 ## Install
 
@@ -34,6 +39,7 @@ Three libraries:
    github:Metsker/silverbullet-vim-qol/Trigger.md
    github:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
    github:Metsker/silverbullet-vim-qol/InputVim.md
+   github:Metsker/silverbullet-vim-qol/LiveGrep.md
    ```
 
    (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-vim-qol/blob/main/Trigger.md`)
@@ -100,6 +106,24 @@ CodeMirror editor itself is a contenteditable, not an input, so it's left to Vim
 
 There's nothing to configure. As a side effect, `Ctrl-W` in those inputs no
 longer falls through to the browser and closes the tab.
+
+## LiveGrep
+
+Run **Navigate: Live Grep** from the command palette. A filter box opens over
+every non-blank line of every page; type to fuzzy-match, and `Enter` jumps to the
+matching line (`Escape` dismisses). Because it reads page bodies rather than the
+index, it finds text inside fenced code blocks and frontmatter too.
+
+Bind it to a key from your `CONFIG` page (a modifier combo, so it doesn't clash
+with typing):
+
+```lua
+command.update {
+  name = "Navigate: Live Grep",
+  key = "Ctrl-Shift-g",
+  mac = "Cmd-Shift-g",
+}
+```
 
 ## How activation works
 

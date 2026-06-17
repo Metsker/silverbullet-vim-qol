@@ -25,4 +25,10 @@ author: Metsker
 description: Vim insert-mode line editing (Ctrl-W / Ctrl-U / Ctrl-H) in text inputs - command palette, search box and Vim command line
 website: https://github.com/Metsker/silverbullet-vim-qol
 uri: github:Metsker/silverbullet-vim-qol/InputVim.md
+---
+name: LiveGrep
+author: Metsker
+description: Fuzzy full-text grep across every line of every page, jumping to the match (Telescope live_grep style)
+website: https://github.com/Metsker/silverbullet-vim-qol
+uri: github:Metsker/silverbullet-vim-qol/LiveGrep.md
 ```
