@@ -1,0 +1,4 @@
+# Local clone of the SilverSearch plug, kept only as a reference for InputVim's
+# panel-iframe support (https://github.com/MrMugame/silversearch). Not part of
+# this repository.
+/silversearch/

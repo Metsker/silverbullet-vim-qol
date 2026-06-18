@@ -1,15 +1,17 @@
 ---
 name: Library/InputVim
-description: Vim insert-mode line editing (Ctrl-W / Ctrl-U / Ctrl-H) in text inputs - command palette, search box, Vim command line, prompts and the rename field
+description: Vim insert-mode line editing (Ctrl-W / Ctrl-U / Ctrl-H) in text inputs - command palette, search box, Vim command line, prompts, the rename field and panel search dialogs like SilverSearch
 tags: meta/library
 ---
 
 Vim **insert-mode** line editing in SilverBullet's plain text inputs - everywhere
-they appear on the page:
+they appear:
 
 * the command palette and page picker,
 * the in-editor **search** box and the Vim **`:` command line**,
-* prompts and the top-bar page-name / rename field.
+* prompts and the top-bar page-name / rename field,
+* search boxes inside **panels**, such as the **SilverSearch** full-text search
+  dialog (which renders in its own iframe).
 
 None of these are CodeMirror, so Vim never sees their keys, and an unbound
 `Ctrl-W` falls straight through to the browser (closing the tab). This library
@@ -26,10 +28,16 @@ it's never matched and keeps its own Vim. Palette navigation (`Ctrl-P` /
 `Ctrl-N`) and clipboard keys are untouched too.
 
 Implementation notes: this is pure Space Lua, reaching the DOM through the `js`
-interop bridge (`js.window` is the browser `window`). A single capture-phase
-`keydown` listener on the document covers every input. Controlled inputs (the
-Preact command palette) are updated by rewriting the value and dispatching an
-`input` event, after which the caret is re-asserted.
+interop bridge (`js.window` is the browser `window`). A capture-phase `keydown`
+listener on the main document covers the page; panels render in same-origin
+`srcdoc` iframes (a separate document), so the script also hooks each panel
+iframe's document - discovered with a `MutationObserver` watching only the direct
+children of `#sb-root` (modal / bottom panels, including SilverSearch) and
+`#sb-main` (side panels), never the subtree, so CodeMirror's per-keystroke DOM
+churn never triggers a rescan. Controlled inputs are updated by rewriting the
+value and dispatching an `input` event, after which the caret is re-asserted -
+which sticks for inputs whose framework reads that event (the Preact command
+palette, SilverSearch's Svelte `bind:value`).
 
 ```space-lua
 -- priority: 10
@@ -60,16 +68,19 @@ local function isTextField(t)
   return false
 end
 
--- Write a new value + caret into a (possibly framework-controlled) input.
--- Dispatching an "input" event makes a controlled input (the Preact command
--- palette) re-read the value and re-filter; the rAF re-asserts the caret after
--- that re-render (which writes back the same string and so never moves the
--- cursor - belt and suspenders).
+-- Write a new value + caret into a (possibly framework-controlled) input. The
+-- input may live in a panel iframe (SilverSearch's search dialog renders in one),
+-- so use its *own* window for the Event constructor and requestAnimationFrame.
+-- Dispatching an "input" event makes a controlled input re-read the value and
+-- re-filter (the Preact command palette, SilverSearch's Svelte `bind:value`); the
+-- rAF re-asserts the caret after that re-render (which writes back the same string
+-- and so never moves the cursor - belt and suspenders).
 local function setValue(input, value, caret)
+  local win = input.ownerDocument.defaultView or js.window
   input.value = value
-  input.dispatchEvent(js.new(js.window.Event, "input", { bubbles = true }))
+  input.dispatchEvent(js.new(win.Event, "input", { bubbles = true }))
   input.setSelectionRange(caret, caret)
-  js.window.requestAnimationFrame(function()
+  win.requestAnimationFrame(function()
     input.setSelectionRange(caret, caret)
   end)
 end
@@ -122,20 +133,77 @@ local function handleKey(e)
   e.preventDefault()
 end
 
--- Expose the current handler so the permanent listener always reaches the latest
+-- Expose the current handler so the permanent listeners always reach the latest
 -- definition, even after scripts are reloaded.
 js.window.__sbInputVimHandler = handleKey
 
--- Install exactly one document-level capture listener for the lifetime of the
--- page. It indirects through the handler stored on `window`, so reloading
--- scripts swaps in fresh logic without stacking listeners.
-if not js.window.__sbInputVimBootstrapped then
-  js.window.__sbInputVimBootstrapped = true
-  js.window.document.addEventListener("keydown", function(e)
+-- Attach one capture-phase keydown listener to a document (the main page or a
+-- panel iframe), indirecting through the handler on `window` so a script reload
+-- swaps in fresh logic without stacking listeners.
+local function attachToDoc(doc)
+  if not doc or doc.__sbInputVimAttached then
+    return
+  end
+  doc.__sbInputVimAttached = true
+  doc.addEventListener("keydown", function(e)
     local handler = js.window.__sbInputVimHandler
     if handler then
       handler(e)
     end
   end, true)
+end
+
+-- Panels (e.g. the SilverSearch search dialog) render in same-origin srcdoc
+-- iframes, so their inputs live in a separate document our main listener can't
+-- see. Hook each panel iframe's document - on load, and again immediately in case
+-- it already loaded before we noticed it. A reopened panel is a fresh <iframe>
+-- element, so the per-element flag lets it be hooked again.
+local function hookIframe(f)
+  if f.__sbInputVimHooked then
+    return
+  end
+  f.__sbInputVimHooked = true
+  local function attach()
+    local cw = f.contentWindow
+    if cw then
+      attachToDoc(cw.document)
+    end
+  end
+  f.addEventListener("load", attach)
+  attach()
+end
+
+local function scanPanels()
+  local frames = js.window.document.querySelectorAll(".sb-panel iframe")
+  for i = 1, frames.length do
+    hookIframe(frames[i])
+  end
+end
+
+-- One-time bootstrap: listen on the main document, then watch for panels opening
+-- so their iframes get hooked. We observe only the *direct children* of #sb-root
+-- (modal / bottom panels - SilverSearch's dialog is a modal panel there) and
+-- #sb-main (side panels) - childList only, never subtree - so CodeMirror's
+-- per-keystroke DOM churn inside #sb-editor never triggers a rescan.
+if not js.window.__sbInputVimBootstrapped then
+  js.window.__sbInputVimBootstrapped = true
+  local doc = js.window.document
+  attachToDoc(doc)
+  local observer = js.new(js.window.MutationObserver, function()
+    scanPanels()
+  end)
+  local root = doc.getElementById("sb-root")
+  local main = doc.getElementById("sb-main")
+  if root then
+    observer.observe(root, { childList = true })
+  end
+  if main then
+    observer.observe(main, { childList = true })
+  end
+  if not root and not main then
+    observer.observe(doc.body, { childList = true })
+  end
+  js.window.__sbInputVimObserver = observer
+  scanPanels()
 end
 ```
