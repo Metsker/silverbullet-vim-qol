@@ -15,13 +15,13 @@ It is intentionally conservative:
 * active only while Vim mode is enabled;
 * active only for plain `j` or a literal `g` then `j` with no modifiers;
 * yields to the Trigger overlay;
-* only blocks when the visible cursor is already at the bottom of the rendered
-  document content.
+* only blocks when the visible cursor or active editor line is already on the
+  last rendered line.
 
 ```space-lua
 -- priority: 20
 
-local CONTENT_BOTTOM_BAND = 40
+local LINE_BOTTOM_BAND = 24
 local G_PREFIX_MS = 900
 
 local function getDoc()
@@ -36,21 +36,53 @@ local function getContent()
   return getDoc().querySelector(".cm-content")
 end
 
+local function getLastLine()
+  local lines = getDoc().querySelectorAll(".cm-line")
+  if not lines or lines.length == 0 then
+    return nil
+  end
+  return lines.item(lines.length - 1)
+end
+
+local function getActiveLine()
+  return getDoc().querySelector(".cm-activeLine")
+end
+
 local function getCursor()
   local doc = getDoc()
   return doc.querySelector(".cm-cursor-primary") or doc.querySelector(".cm-cursor") or doc.querySelector(".cm-fat-cursor")
 end
 
-local function cursorAtDocumentBottom()
-  local cursor = getCursor()
-  local content = getContent()
-  if not cursor or not content then
+local function rectsTouchBottom(a, b)
+  if not a or not b then
     return false
   end
+  return a.bottom >= b.bottom - LINE_BOTTOM_BAND
+end
 
-  local cursorRect = cursor.getBoundingClientRect()
-  local contentRect = content.getBoundingClientRect()
-  return cursorRect.bottom >= contentRect.bottom - CONTENT_BOTTOM_BAND
+local function activeLineIsLastLine()
+  local activeLine = getActiveLine()
+  local lastLine = getLastLine()
+  if not activeLine or not lastLine then
+    return false
+  end
+  if activeLine == lastLine then
+    return true
+  end
+  return rectsTouchBottom(activeLine.getBoundingClientRect(), lastLine.getBoundingClientRect())
+end
+
+local function cursorAtLastLine()
+  local cursor = getCursor()
+  local lastLine = getLastLine()
+  if not cursor or not lastLine then
+    return false
+  end
+  return rectsTouchBottom(cursor.getBoundingClientRect(), lastLine.getBoundingClientRect())
+end
+
+local function atBottomMotionBoundary()
+  return activeLineIsLastLine() or cursorAtLastLine()
 end
 
 local function noModifiers(e)
@@ -58,7 +90,7 @@ local function noModifiers(e)
 end
 
 local function rememberGPrefixIfNeeded(e)
-  if e.key == "g" and noModifiers(e) and vimActive() and cursorAtDocumentBottom() then
+  if e.key == "g" and noModifiers(e) and vimActive() and atBottomMotionBoundary() then
     js.window.__sbVimBottomGuardLastG = js.window.performance.now()
   end
 end
@@ -85,7 +117,7 @@ local function shouldBlockDownwardDisplayLine(e)
   if getDoc().querySelector(".sb-trigger-hints") then
     return false
   end
-  if not cursorAtDocumentBottom() then
+  if not atBottomMotionBoundary() then
     return false
   end
   return mappedJAtBottom(e) or literalGJAtBottom(e)
@@ -111,8 +143,14 @@ end
 -- document listeners.
 js.window.__sbVimBottomGuardHandler = handleKeyDown
 
-if not js.window.__sbVimBottomGuardBootstrapped then
-  js.window.__sbVimBottomGuardBootstrapped = true
+if not js.window.__sbVimBottomGuardBootstrappedV2 then
+  js.window.__sbVimBottomGuardBootstrappedV2 = true
+  js.window.addEventListener("keydown", function(e)
+    local h = js.window.__sbVimBottomGuardHandler
+    if h then
+      h(e)
+    end
+  end, true)
   js.window.document.addEventListener("keydown", function(e)
     local h = js.window.__sbVimBottomGuardHandler
     if h then
