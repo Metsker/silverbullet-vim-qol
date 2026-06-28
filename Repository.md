@@ -25,4 +25,10 @@ author: Metsker
 description: Vim insert-mode line editing (Ctrl-W / Ctrl-U / Ctrl-H) in text inputs - command palette, search box, Vim command line and panel search dialogs like SilverSearch
 website: https://github.com/Metsker/silverbullet-vim-qol
 uri: github:Metsker/silverbullet-vim-qol/InputVim.md
+---
+name: VimBottomGuard
+author: Metsker
+description: Prevent Vim display-line down movement from wrapping from the bottom of the page back to the top
+website: https://github.com/Metsker/silverbullet-vim-qol
+uri: github:Metsker/silverbullet-vim-qol/VimBottomGuard.md
 ```
