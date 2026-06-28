@@ -6,7 +6,7 @@ Vim-flavored quality-of-life enhancements for
 changes. They reach the DOM through the `js` interop bridge and install
 document-level `keydown` listeners, so they also work on read-only pages.
 
-Four libraries:
+Three libraries:
 
 - **Trigger** (`Trigger.md`) - Vimium-style navigation. Run a command to overlay short
   letter labels on every link, button and task checkbox on screen - plus the
@@ -23,9 +23,6 @@ Four libraries:
   `Ctrl-U` (delete to line start) and `Ctrl-H` (Backspace). These inputs aren't
   CodeMirror, so Vim never sees their keys; this also stops an unbound `Ctrl-W`
   from closing the browser tab. The editor itself keeps its own Vim.
-- **VimBottomGuard** (`VimBottomGuard.md`) - prevents a narrow CodeMirror Vim edge
-  case where `j -> gj` display-line movement at the bottom of a page can jump
-  back to the top. It leaves normal wrapping and `gj`/`gk` navigation alone.
 
 ## Install
 
@@ -38,7 +35,6 @@ Four libraries:
    github:Metsker/silverbullet-vim-qol/Trigger.md
    github:Metsker/silverbullet-vim-qol/ReadOnlyVim.md
    github:Metsker/silverbullet-vim-qol/InputVim.md
-   github:Metsker/silverbullet-vim-qol/VimBottomGuard.md
    ```
 
    (or the GitHub form, e.g. `https://github.com/Metsker/silverbullet-vim-qol/blob/main/Trigger.md`)
