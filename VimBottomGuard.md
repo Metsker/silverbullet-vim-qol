@@ -13,16 +13,16 @@ already at the bottom edge.
 It is intentionally conservative:
 
 * active only while Vim mode is enabled;
-* active only for plain `j` with no modifiers;
+* active only for plain `j` or a literal `g` then `j` with no modifiers;
 * yields to the Trigger overlay;
-* only blocks when the editor scroller is at the bottom and the visible cursor is
-  near the bottom of the viewport.
+* only blocks when the visible cursor is already at the bottom of the rendered
+  document content.
 
 ```space-lua
 -- priority: 20
 
-local BOTTOM_EPSILON = 3
-local CURSOR_BOTTOM_BAND = 80
+local CONTENT_BOTTOM_BAND = 40
+local G_PREFIX_MS = 900
 
 local function getDoc()
   return js.window.document
@@ -32,52 +32,78 @@ local function vimActive()
   return getDoc().querySelector(".cm-vimMode") ~= nil
 end
 
-local function getScroller()
-  return getDoc().querySelector(".cm-scroller")
+local function getContent()
+  return getDoc().querySelector(".cm-content")
 end
 
-local function scrollerAtBottom(scroller)
-  if not scroller then
-    return false
-  end
-  local max = scroller.scrollHeight - scroller.clientHeight
-  return scroller.scrollTop >= max - BOTTOM_EPSILON
-end
-
-local function cursorNearBottom(scroller)
+local function getCursor()
   local doc = getDoc()
-  local cursor = doc.querySelector(".cm-cursor-primary") or doc.querySelector(".cm-cursor") or doc.querySelector(".cm-fat-cursor")
-  if not cursor or not scroller then
-    return true
+  return doc.querySelector(".cm-cursor-primary") or doc.querySelector(".cm-cursor") or doc.querySelector(".cm-fat-cursor")
+end
+
+local function cursorAtDocumentBottom()
+  local cursor = getCursor()
+  local content = getContent()
+  if not cursor or not content then
+    return false
   end
 
   local cursorRect = cursor.getBoundingClientRect()
-  local scrollerRect = scroller.getBoundingClientRect()
-  return cursorRect.bottom >= scrollerRect.bottom - CURSOR_BOTTOM_BAND
+  local contentRect = content.getBoundingClientRect()
+  return cursorRect.bottom >= contentRect.bottom - CONTENT_BOTTOM_BAND
+end
+
+local function noModifiers(e)
+  return not (e.ctrlKey or e.metaKey or e.altKey or e.shiftKey)
+end
+
+local function rememberGPrefixIfNeeded(e)
+  if e.key == "g" and noModifiers(e) and vimActive() and cursorAtDocumentBottom() then
+    js.window.__sbVimBottomGuardLastG = js.window.performance.now()
+  end
+end
+
+local function literalGJAtBottom(e)
+  if e.key ~= "j" or not noModifiers(e) then
+    return false
+  end
+  local lastG = tonumber(js.window.__sbVimBottomGuardLastG) or 0
+  if lastG <= 0 then
+    return false
+  end
+  return js.window.performance.now() - lastG <= G_PREFIX_MS
+end
+
+local function mappedJAtBottom(e)
+  return e.key == "j" and noModifiers(e)
 end
 
 local function shouldBlockDownwardDisplayLine(e)
-  if e.key ~= "j" then
-    return false
-  end
-  if e.ctrlKey or e.metaKey or e.altKey or e.shiftKey then
+  if not vimActive() then
     return false
   end
   if getDoc().querySelector(".sb-trigger-hints") then
     return false
   end
-  if not vimActive() then
+  if not cursorAtDocumentBottom() then
     return false
   end
+  return mappedJAtBottom(e) or literalGJAtBottom(e)
+end
 
-  local scroller = getScroller()
-  return scrollerAtBottom(scroller) and cursorNearBottom(scroller)
+local function stopEvent(e)
+  e.preventDefault()
+  e.stopPropagation()
+  if e.stopImmediatePropagation then
+    e.stopImmediatePropagation()
+  end
 end
 
 local function handleKeyDown(e)
+  rememberGPrefixIfNeeded(e)
   if shouldBlockDownwardDisplayLine(e) then
-    e.preventDefault()
-    e.stopPropagation()
+    js.window.__sbVimBottomGuardLastG = nil
+    stopEvent(e)
   end
 end
 
